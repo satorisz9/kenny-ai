@@ -3,7 +3,23 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import axios from 'axios';
 import dotenv from 'dotenv';
-import asyncHandler from './asyncHandler';
+import ErrorBoundary from './ErrorBoundary';
+
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+
+const root = ReactDOM.createRoot(
+  document.getElementById('root') as HTMLElement
+);
+
+root.render(
+  <React.StrictMode>
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  </React.StrictMode>
+);
 
 // 環境変数の読み込み
 dotenv.config();
@@ -63,56 +79,43 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 });
 
 // エンドポイント: /api/check-trust
-app.post(
-  '/api/check-trust',
-  asyncHandler(async (req: Request<{}, {}, CheckTrustRequest>, res: Response) => {
-    const { username } = req.body;
+app.post('/api/check-trust', async (req: Request<{}, {}, CheckTrustRequest>, res: Response) => {
+  const { username } = req.body;
 
-    if (!username || typeof username !== 'string' || username.trim() === '') {
-      res.status(400).json({ error: '有効なユーザー名を提供してください。' });
-      return;
+  if (!username || typeof username !== 'string' || username.trim() === '') {
+    res.status(400).json({ error: '有効なユーザー名を提供してください。' });
+    return;
+  }
+
+  // Dify APIへのリクエスト
+  const response = await axios.post<DifyChatMessagesResponse>(
+    `${process.env.DIFY_API_URL}/chat-messages`,
+    {
+      query: `Check the trustworthiness of ${username}`,
+      response_mode: 'blocking',
+      user: process.env.USER_IDENTIFIER || 'unique-user-id', // ユニークなユーザーIDを適宜設定
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.DIFY_API_KEY}`,
+      },
     }
+  );
 
-    try {
-      // Dify APIへのリクエスト
-      const response = await axios.post<DifyChatMessagesResponse>(
-        `${process.env.DIFY_API_URL}/chat-messages`,
-        {
-          query: `Check the trustworthiness of ${username}`,
-          response_mode: 'blocking',
-          user: process.env.USER_IDENTIFIER || 'unique-user-id', // ユニークなユーザーIDを適宜設定
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${process.env.DIFY_API_KEY}`,
-          },
-        }
-      );
+  const { answer } = response.data;
 
-      const { answer } = response.data;
+  // 信頼性スコアの抽出（Difyの応答形式に基づいて解析）
+  const trustScoreMatch = answer.match(/trust score[:：]\s*(\d+)%/i);
+  if (trustScoreMatch) {
+    const trustScore = parseInt(trustScoreMatch[1], 10);
+    res.json({ trustScore });
+  } else {
+    // 予期しない応答形式の場合
+    res.status(500).json({ error: '信頼性スコアを解析できませんでした。' });
+  }
+});
 
-      // 信頼性スコアの抽出（Difyの応答形式に基づいて解析）
-      const trustScoreMatch = answer.match(/trust score[:：]\s*(\d+)%/i);
-      if (trustScoreMatch) {
-        const trustScore = parseInt(trustScoreMatch[1], 10);
-        res.json({ trustScore });
-      } else {
-        // 予期しない応答形式の場合
-        res.status(500).json({ error: '信頼性スコアを解析できませんでした。' });
-      }
-    } catch (error: any) {
-      console.error('Error communicating with Dify API:', error.message);
-      if (error.response && error.response.data && error.response.data.message) {
-        res.status(error.response.status).json({ error: error.response.data.message });
-      } else {
-        res.status(500).json({ error: 'Dify APIエラーが発生しました。' });
-      }
-    }
-  })
-);
-
-// サーバーの起動
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
