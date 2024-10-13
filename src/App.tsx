@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+// src/App.tsx
+import React, { useState } from 'react';
 import { Search, AlertCircle } from 'lucide-react';
+import axios from 'axios';
 
 function App() {
   const [username, setUsername] = useState('');
@@ -7,13 +9,10 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    console.log('App component mounted');
-  }, []);
-
   const checkTrust = async () => {
-    if (!username) {
+    if (!username.trim()) {
       setError('ユーザー名を入力してください。');
+      setTrustScore(null);
       return;
     }
 
@@ -22,17 +21,25 @@ function App() {
     setTrustScore(null);
 
     try {
-      console.log('Fetching trust score for:', username);
-      const response = await fetch(`https://api.dify.ai/v1/check-trust?username=${encodeURIComponent(username)}`);
-      if (!response.ok) {
-        throw new Error('APIリクエストに失敗しました。');
-      }
-      const data = await response.json();
-      console.log('Received trust score:', data.trustScore);
-      setTrustScore(data.trustScore);
-    } catch (err) {
+      const response = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/check-trust`,
+        { username },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const { trustScore } = response.data;
+      setTrustScore(trustScore);
+    } catch (err: any) {
       console.error('Error fetching trust score:', err);
-      setError('信頼性の確認中にエラーが発生しました。');
+      if (err.response && err.response.data && err.response.data.error) {
+        setError(err.response.data.error);
+      } else {
+        setError('信頼性の確認中にエラーが発生しました。');
+      }
     } finally {
       setLoading(false);
     }
@@ -44,10 +51,16 @@ function App() {
     return 'text-red-500';
   };
 
+  const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      checkTrust();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200 flex flex-col items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Kenny AI</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Xアカウント信頼性チェッカー</h1>
         <div className="mb-6">
           <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
             Xのユーザー名
@@ -60,11 +73,14 @@ function App() {
               placeholder="@username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              onKeyPress={handleKeyPress}
+              aria-label="Xのユーザー名"
             />
             <button
               onClick={checkTrust}
               disabled={loading}
               className="absolute right-2 top-2 bg-blue-500 text-white p-1 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              aria-label="信頼性をチェック"
             >
               <Search className="w-5 h-5" />
             </button>
