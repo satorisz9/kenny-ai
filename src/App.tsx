@@ -3,12 +3,10 @@ import React, { useState } from 'react';
 import { Search, AlertCircle } from 'lucide-react';
 import axios, { AxiosError } from 'axios';
 
-// APIレスポンスの型定義
 interface CheckTrustResponse {
   trustScore: number;
 }
 
-// エラーレスポンスの型定義
 interface ErrorResponse {
   error: string;
 }
@@ -17,7 +15,7 @@ const App: React.FC = () => {
   const [username, setUsername] = useState<string>('');
   const [trustScore, setTrustScore] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>(''); // 初期値を空文字に設定
 
   const isValidUsername = (username: string): boolean => /^@(\w){1,15}$/.test(username);
 
@@ -34,7 +32,7 @@ const App: React.FC = () => {
 
     try {
       console.log('Request URL:', `${import.meta.env.VITE_BACKEND_URL}/check-trust`);
-      const response = await axios.post<CheckTrustResponse, any, { username: string }>(
+      const response = await axios.post<CheckTrustResponse>(
         `${import.meta.env.VITE_BACKEND_URL}/check-trust`,
         { username },
         {
@@ -50,8 +48,10 @@ const App: React.FC = () => {
       console.error('Error fetching trust score:', err);
       if (axios.isAxiosError(err)) {
         const axiosError = err as AxiosError<ErrorResponse>;
-        if (axiosError.response && axiosError.response.data && axiosError.response.data.error) {
+        if (axiosError.response && axiosError.response.data && typeof axiosError.response.data.error === 'string') {
           setError(axiosError.response.data.error);
+        } else if (axiosError.message) {
+          setError(axiosError.message);
         } else {
           setError('信頼性の確認中にエラーが発生しました。');
         }
@@ -78,7 +78,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200 flex flex-col items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Kenny AI</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Xアカウント信頼性チェッカー</h1>
         <div className="mb-6">
           <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
             Xのユーザー名
