@@ -23,7 +23,7 @@ function App() {
 
     try {
       console.log('Fetching trust score for:', username);
-      const response = await fetch(`/api/check-trust?username=${encodeURIComponent(username)}`);
+      const response = await fetch(`https://api.dify.ai/v1/check-trust?username=${encodeURIComponent(username)}`);
       if (!response.ok) {
         throw new Error('APIリクエストに失敗しました。');
       }
