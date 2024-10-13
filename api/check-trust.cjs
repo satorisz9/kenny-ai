@@ -1,20 +1,7 @@
-// api/check-trust.ts
-import { VercelRequest, VercelResponse } from '@vercel/node';
-import axios from 'axios';
+// api/check-trust.cjs
+const axios = require('axios');
 
-interface DifyResponse {
-  answer: string;
-}
-
-interface CheckTrustResponse {
-  trustScore: number;
-}
-
-interface ErrorResponse {
-  error: string;
-}
-
-export default async (req: VercelRequest, res: VercelResponse) => {
+module.exports = async (req, res) => {
   console.log('Received request:', req.method, req.body);
 
   try {
@@ -34,7 +21,7 @@ export default async (req: VercelRequest, res: VercelResponse) => {
 
     // Dify APIへのリクエスト
     console.log('Sending request to Dify API');
-    const response = await axios.post<DifyResponse>(
+    const response = await axios.post(
       `${process.env.DIFY_API_URL}/chat-messages`,
       {
         query: `Check the trustworthiness of ${username}`,
@@ -62,7 +49,7 @@ export default async (req: VercelRequest, res: VercelResponse) => {
       console.log('Failed to parse trust score from answer');
       return res.status(500).json({ error: '信頼性スコアを解析できませんでした。' });
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in check-trust function:', error);
 
     if (axios.isAxiosError(error)) {
