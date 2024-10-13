@@ -1,6 +1,6 @@
 // src/App.tsx
-import React, { useState, useEffect } from 'react';
-// import { Search, AlertCircle } from 'lucide-react'; // 一時的にコメントアウト
+import React, { useState } from 'react';
+import { Search, AlertCircle } from 'lucide-react';
 import axios, { AxiosError } from 'axios';
 
 // APIレスポンスの型定義
@@ -33,9 +33,9 @@ const App: React.FC = () => {
     setTrustScore(null);
 
     try {
-      console.log('Request URL:', `${import.meta.env.VITE_BACKEND_URL}/api/check-trust`);
+      console.log('Request URL:', `${import.meta.env.VITE_BACKEND_URL}/check-trust`);
       const response = await axios.post<CheckTrustResponse, any, { username: string }>(
-        `${import.meta.env.VITE_BACKEND_URL}/api/check-trust`,
+        `${import.meta.env.VITE_BACKEND_URL}/check-trust`,
         { username },
         {
           headers: {
@@ -100,7 +100,7 @@ const App: React.FC = () => {
               className="absolute right-2 top-2 bg-blue-500 text-white p-1 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
               aria-label="信頼性をチェック"
             >
-              🔍 {/* <Search className="w-5 h-5" /> */}
+              <Search className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -115,7 +115,7 @@ const App: React.FC = () => {
         {error && (
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
             <div className="flex">
-              ⚠️ {/* <AlertCircle className="w-5 h-5 mr-2" /> */}
+              <AlertCircle className="w-5 h-5 mr-2" />
               <p>{error}</p>
             </div>
           </div>
