@@ -2,14 +2,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import axios from 'axios';
 
-interface CheckTrustResponse {
-  trustScore: number;
-}
-
-interface ErrorResponse {
-  error: string;
-}
-
 export default async (req: VercelRequest, res: VercelResponse) => {
   try {
     if (req.method !== 'POST') {

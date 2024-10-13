@@ -78,7 +78,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200 flex flex-col items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Xアカウント信頼性チェッカー</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Kenny AI</h1>
         <div className="mb-6">
           <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
             Xのユーザー名
