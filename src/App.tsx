@@ -48,7 +48,11 @@ const App: React.FC = () => {
       console.error('Error fetching trust score:', err);
       if (axios.isAxiosError(err)) {
         const axiosError = err as AxiosError<ErrorResponse>;
-        if (axiosError.response && axiosError.response.data && typeof axiosError.response.data.error === 'string') {
+        if (
+          axiosError.response &&
+          axiosError.response.data &&
+          typeof axiosError.response.data.error === 'string'
+        ) {
           setError(axiosError.response.data.error);
         } else if (axiosError.message) {
           setError(axiosError.message);
