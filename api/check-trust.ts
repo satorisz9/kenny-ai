@@ -1,5 +1,5 @@
 // api/check-trust.ts
-import { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import axios from 'axios';
 
 interface DifyResponse {
@@ -14,7 +14,7 @@ interface ErrorResponse {
   error: string;
 }
 
-export default async (req: VercelRequest, res: VercelResponse) => {
+const handler = async (req: VercelRequest, res: VercelResponse) => {
   console.log('Received request:', req.method, req.body);
 
   try {
@@ -83,3 +83,5 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     return res.status(500).json({ error: '内部サーバーエラーが発生しました。' });
   }
 };
+
+export default handler;
