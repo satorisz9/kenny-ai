@@ -1,6 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, AlertCircle } from 'lucide-react';
 import axios from 'axios';
+import { useUser, SignIn, SignOutButton } from '@clerk/clerk-react';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
+import CheckoutForm from './components/CheckoutForm';
 
 interface DifyResponse {
   answer: string;
@@ -8,18 +12,54 @@ interface DifyResponse {
   totalPrice: string;
 }
 
+interface UserUsage {
+  count: number;
+  lastReset: string;
+}
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+
 const App: React.FC = () => {
+  const { isSignedIn, user } = useUser();
   const [username, setUsername] = useState<string>('');
   const [response, setResponse] = useState<DifyResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [userUsage, setUserUsage] = useState<UserUsage | null>(null);
+  const [showUpgrade, setShowUpgrade] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isSignedIn && user) {
+      fetchUserUsage();
+    }
+  }, [isSignedIn, user]);
+
+  const fetchUserUsage = async () => {
+    try {
+      const response = await axios.get(`/api/user-usage?userId=${user?.id}`);
+      setUserUsage(response.data);
+    } catch (err) {
+      console.error('Error fetching user usage:', err);
+    }
+  };
 
   const isValidUsername = (username: string): boolean => /^@(\w){1,15}$/.test(username);
 
   const checkTrust = async () => {
+    if (!isSignedIn) {
+      setError('ログインしてください。');
+      return;
+    }
+
     if (!isValidUsername(username.trim())) {
       setError('有効なユーザー名を入力してください（@から始まる1～15文字）。');
       setResponse(null);
+      return;
+    }
+
+    if (userUsage && userUsage.count >= 3) {
+      setError('本日の利用回数上限に達しました。アップグレードして制限を解除してください。');
+      setShowUpgrade(true);
       return;
     }
 
@@ -30,16 +70,17 @@ const App: React.FC = () => {
     try {
       const response = await axios.post<DifyResponse>(
         `${import.meta.env.VITE_BACKEND_URL}/check-trust`,
-        { username },
+        { username, userId: user?.id },
         {
           headers: {
             'Content-Type': 'application/json',
           },
-          timeout: 60000, // タイムアウトを60秒に設定
+          timeout: 60000,
         }
       );
 
       setResponse(response.data);
+      fetchUserUsage(); // Update usage after successful check
     } catch (err: any) {
       console.error('Error fetching trust score:', err);
       if (err.response) {
@@ -60,10 +101,29 @@ const App: React.FC = () => {
     }
   };
 
+  if (!isSignedIn) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200 flex flex-col items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+          <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Kenny AI</h1>
+          <SignIn />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200 flex flex-col items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Kenny AI</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Kenny AI</h1>
+          <SignOutButton />
+        </div>
+        <div className="mb-4">
+          <p className="text-sm text-gray-600">
+            本日の利用回数: {userUsage ? userUsage.count : 0} / 3
+          </p>
+        </div>
         <div className="mb-6">
           <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
             Xのユーザー名
@@ -114,6 +174,15 @@ const App: React.FC = () => {
               <p>使用トークン数: {response.totalTokens}</p>
               <p>総コスト: ${response.totalPrice} USD</p>
             </div>
+          </div>
+        )}
+
+        {showUpgrade && (
+          <div className="mt-6">
+            <h3 className="text-xl font-semibold mb-2">アップグレード</h3>
+            <Elements stripe={stripePromise}>
+              <CheckoutForm />
+            </Elements>
           </div>
         )}
       </div>
