@@ -5,6 +5,14 @@ interface DifyResponse {
   answer: string;
 }
 
+interface CheckTrustResponse {
+  trustScore: number;
+}
+
+interface ErrorResponse {
+  error: string;
+}
+
 const handler = async (req: VercelRequest, res: VercelResponse) => {
   console.log('Received request:', req.method, req.body);
 
@@ -23,30 +31,29 @@ const handler = async (req: VercelRequest, res: VercelResponse) => {
       return res.status(400).json({ error: '有効なユーザー名を提供してください。' });
     }
 
-    // Dify APIへのリクエスト
     console.log('Sending request to Dify API');
     const response = await axios.post<DifyResponse>(
       `${process.env.DIFY_API_URL}/chat-messages`,
       {
-        inputs: {}, // 空のオブジェクトを追加
+        inputs: {},
         query: `Check the trustworthiness of ${username}`,
         response_mode: 'blocking',
         user: process.env.USER_IDENTIFIER || 'unique-user-id',
-        conversation_id: '', // 空の文字列を追加
-        files: [] // 空の配列を追加
+        conversation_id: '',
+        files: []
       },
       {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${process.env.DIFY_API_KEY}`,
         },
+        timeout: 50000, // タイムアウトを50秒に設定
       }
     );
 
     console.log('Received response from Dify API:', response.data);
     const { answer } = response.data;
 
-    // 信頼スコアの抽出
     const trustScoreMatch = answer.match(/trust score[:：]\s*(\d+)%/i);
     if (trustScoreMatch) {
       const trustScore = parseInt(trustScoreMatch[1], 10);
@@ -72,7 +79,6 @@ const handler = async (req: VercelRequest, res: VercelResponse) => {
       }
     }
 
-    // その他のエラー
     console.error('Unhandled error:', error);
     return res.status(500).json({ error: '内部サーバーエラーが発生しました。' });
   }

@@ -1,21 +1,17 @@
 // src/App.tsx
 import React, { useState } from 'react';
 import { Search, AlertCircle } from 'lucide-react';
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 
 interface CheckTrustResponse {
   trustScore: number;
-}
-
-interface ErrorResponse {
-  error: string;
 }
 
 const App: React.FC = () => {
   const [username, setUsername] = useState<string>('');
   const [trustScore, setTrustScore] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>(''); // 初期値を空文字に設定
+  const [error, setError] = useState<string>('');
 
   const isValidUsername = (username: string): boolean => /^@(\w){1,15}$/.test(username);
 
@@ -39,6 +35,7 @@ const App: React.FC = () => {
           headers: {
             'Content-Type': 'application/json',
           },
+          timeout: 60000, // タイムアウトを60秒に設定
         }
       );
 
@@ -47,20 +44,15 @@ const App: React.FC = () => {
     } catch (err: any) {
       console.error('Error fetching trust score:', err);
       if (axios.isAxiosError(err)) {
-        const axiosError = err as AxiosError<ErrorResponse>;
-        if (
-          axiosError.response &&
-          axiosError.response.data &&
-          typeof axiosError.response.data.error === 'string'
-        ) {
-          setError(axiosError.response.data.error);
-        } else if (axiosError.message) {
-          setError(axiosError.message);
+        if (err.response) {
+          setError(`エラー: ${err.response.status} - ${err.response.data.error || 'サーバーエラーが発生しました。'}`);
+        } else if (err.request) {
+          setError('サーバーからの応答がありませんでした。ネットワーク接続を確認してください。');
         } else {
-          setError('信頼性の確認中にエラーが発生しました。');
+          setError(`リクエスト設定エラー: ${err.message}`);
         }
       } else {
-        setError('信頼性の確認中に予期しないエラーが発生しました。');
+        setError('予期しないエラーが発生しました。');
       }
     } finally {
       setLoading(false);

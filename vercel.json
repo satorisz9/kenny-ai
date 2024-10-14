@@ -1,0 +1,7 @@
+{
+    "functions": {
+      "api/check-trust.ts": {
+        "maxDuration": 60
+      }
+    }
+  }
