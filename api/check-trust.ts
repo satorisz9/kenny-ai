@@ -5,14 +5,6 @@ interface DifyResponse {
   answer: string;
 }
 
-interface CheckTrustResponse {
-  trustScore: number;
-}
-
-interface ErrorResponse {
-  error: string;
-}
-
 const handler = async (req: VercelRequest, res: VercelResponse) => {
   console.log('Received request:', req.method, req.body);
 
