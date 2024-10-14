@@ -1,4 +1,3 @@
-// api/check-trust.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import axios from 'axios';
 
@@ -29,9 +28,12 @@ const handler = async (req: VercelRequest, res: VercelResponse) => {
     const response = await axios.post<DifyResponse>(
       `${process.env.DIFY_API_URL}/chat-messages`,
       {
+        inputs: {}, // 空のオブジェクトを追加
         query: `Check the trustworthiness of ${username}`,
         response_mode: 'blocking',
         user: process.env.USER_IDENTIFIER || 'unique-user-id',
+        conversation_id: '', // 空の文字列を追加
+        files: [] // 空の配列を追加
       },
       {
         headers: {
