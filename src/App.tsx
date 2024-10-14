@@ -1,15 +1,16 @@
-// src/App.tsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Search, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 
-interface CheckTrustResponse {
-  trustScore: number;
+interface DifyResponse {
+  answer: string;
+  totalTokens: number;
+  totalPrice: string;
 }
 
 const App: React.FC = () => {
   const [username, setUsername] = useState<string>('');
-  const [trustScore, setTrustScore] = useState<number | null>(null);
+  const [response, setResponse] = useState<DifyResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
@@ -18,17 +19,16 @@ const App: React.FC = () => {
   const checkTrust = async () => {
     if (!isValidUsername(username.trim())) {
       setError('有効なユーザー名を入力してください（@から始まる1～15文字）。');
-      setTrustScore(null);
+      setResponse(null);
       return;
     }
 
     setLoading(true);
     setError('');
-    setTrustScore(null);
+    setResponse(null);
 
     try {
-      console.log('Request URL:', `${import.meta.env.VITE_BACKEND_URL}/check-trust`);
-      const response = await axios.post<CheckTrustResponse>(
+      const response = await axios.post<DifyResponse>(
         `${import.meta.env.VITE_BACKEND_URL}/check-trust`,
         { username },
         {
@@ -39,30 +39,19 @@ const App: React.FC = () => {
         }
       );
 
-      const { trustScore } = response.data;
-      setTrustScore(trustScore);
+      setResponse(response.data);
     } catch (err: any) {
       console.error('Error fetching trust score:', err);
-      if (axios.isAxiosError(err)) {
-        if (err.response) {
-          setError(`エラー: ${err.response.status} - ${err.response.data.error || 'サーバーエラーが発生しました。'}`);
-        } else if (err.request) {
-          setError('サーバーからの応答がありませんでした。ネットワーク接続を確認してください。');
-        } else {
-          setError(`リクエスト設定エラー: ${err.message}`);
-        }
+      if (err.response) {
+        setError(`エラー: ${err.response.status} - ${err.response.data.error || 'サーバーエラーが発生しました。'}`);
+      } else if (err.request) {
+        setError('サーバーからの応答がありませんでした。ネットワーク接続を確認してください。');
       } else {
-        setError('予期しないエラーが発生しました。');
+        setError(`リクエスト設定エラー: ${err.message}`);
       }
     } finally {
       setLoading(false);
     }
-  };
-
-  const getTrustColor = (score: number): string => {
-    if (score >= 80) return 'text-green-500';
-    if (score >= 60) return 'text-yellow-500';
-    return 'text-red-500';
   };
 
   const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -117,17 +106,14 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {trustScore !== null && (
+        {response && (
           <div className="text-center">
-            <h2 className="text-2xl font-semibold mb-2">信頼性スコア</h2>
-            <p className={`text-4xl font-bold ${getTrustColor(trustScore)}`}>{trustScore}%</p>
-            <p className="mt-2 text-gray-600">
-              {trustScore >= 80
-                ? '高い信頼性があります。'
-                : trustScore >= 60
-                ? '中程度の信頼性があります。'
-                : '信頼性が低い可能性があります。'}
-            </p>
+            <h2 className="text-2xl font-semibold mb-2">分析結果</h2>
+            <p className="text-lg text-gray-700 mb-4">{response.answer}</p>
+            <div className="text-sm text-gray-500">
+              <p>使用トークン数: {response.totalTokens}</p>
+              <p>総コスト: ${response.totalPrice} USD</p>
+            </div>
           </div>
         )}
       </div>
